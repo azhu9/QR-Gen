@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  @font-face{
+    font-family:'Geist';
+    src:url('https://cdn.jsdelivr.net/npm/[email protected]/dist/fonts/geist-sans/Geist-Regular.woff2') format('woff2');
+    font-weight:400;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Geist';
+    src:url('https://cdn.jsdelivr.net/npm/[email protected]/dist/fonts/geist-sans/Geist-Medium.woff2') format('woff2');
+    font-weight:500;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Geist';
+    src:url('https://cdn.jsdelivr.net/npm/[email protected]/dist/fonts/geist-sans/Geist-SemiBold.woff2') format('woff2');
+    font-weight:600;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Geist Mono';
+    src:url('https://cdn.jsdelivr.net/npm/[email protected]/dist/fonts/geist-mono/GeistMono-Regular.woff2') format('woff2');
+    font-weight:400;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Geist Mono';
+    src:url('https://cdn.jsdelivr.net/npm/[email protected]/dist/fonts/geist-mono/GeistMono-Medium.woff2') format('woff2');
+    font-weight:500;
+    font-display:swap;
+  }
+  :root{
+    --bg:#fafafa;
+    --panel:#ffffff;
+    --line:#eaeaea;
+    --line-strong:#d4d4d4;
+    --text:#171717;
+    --text-dim:#737373;
+    --accent:#171717;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Geist','Inter',system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:56px 20px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:880px;}
+  header{margin-bottom:36px;}
+  .eyebrow{
+    font-family:'Geist Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--text-dim);
+    margin:0 0 10px;
+  }
+  h1{
+    font-size:26px;
+    font-weight:600;
+    letter-spacing:-0.02em;
+    margin:0 0 10px;
+  }
+  p.sub{
+    color:var(--text-dim);
+    font-size:14px;
+    line-height:1.65;
+    margin:0;
+    max-width:520px;
+  }
+  .board{
+    display:grid;
+    grid-template-columns:1fr 320px;
+    gap:16px;
+    align-items:start;
+  }
+  @media (max-width:720px){
+    .board{grid-template-columns:1fr;}
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:24px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:500;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .field{margin-bottom:18px;}
+  textarea, select{
+    width:100%;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--text);
+    font-family:'Geist',system-ui,sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    resize:vertical;
+  }
+  textarea{min-height:84px;font-family:'Geist Mono',monospace;font-size:13px;}
+  textarea:focus, select:focus{
+    outline:none;
+    border-color:var(--text);
+    box-shadow:0 0 0 3px rgba(23,23,23,0.08);
+  }
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .color-row{display:flex;align-items:center;gap:10px;}
+  input[type=color]{
+    width:40px;height:32px;
+    border:1px solid var(--line-strong);
+    border-radius:6px;
+    padding:0;
+    background:none;
+    cursor:pointer;
+  }
+  .swatch-label{font-family:'Geist Mono',monospace;font-size:12px;color:var(--text-dim);}
+  .stamp-frame{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:24px 16px;
+  }
+  .qr-box{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+  }
+  #qr-canvas{display:block;image-rendering:pixelated;border-radius:2px;}
+  .placeholder{
+    width:240px;height:240px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:var(--text-dim);
+    text-align:center;
+  }
+  .actions{
+    margin-top:20px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  button{
+    font-family:'Geist',system-ui,sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:10px 16px;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--text);
+    cursor:pointer;
+    transition:background 0.12s, border-color 0.12s;
+  }
+  button:hover{background:#f5f5f5;}
+  button.primary{
+    background:var(--text);
+    color:#fff;
+    border-color:var(--text);
+  }
+  button.primary:hover{background:#000;}
+  .note{
+    margin-top:16px;
+    font-size:12px;
+    color:var(--text-dim);
+    line-height:1.65;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  footer{
+    margin-top:36px;
+    font-size:12px;
+    color:var(--text-dim);
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">No signin · No tracking · No expiration</p>
+    <h1>QR generator</h1>
+    <p class="sub">Runs entirely in your browser. Nothing you type is sent anywhere, stored anywhere, or tied to any account. Codes never expire because there's no service behind them to shut off.</p>
+  </header>
+
+  <div class="board">
+    <div class="panel">
+      <div class="field">
+        <label for="data">Content</label>
+        <textarea id="data" placeholder="https://example.com or any text">https://www.anthropic.com</textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="ecc">Error correction</label>
+          <select id="ecc">
+            <option value="L">L — low (7%)</option>
+            <option value="M" selected>M — medium (15%)</option>
+            <option value="Q">Q — quartile (25%)</option>
+            <option value="H">H — high (30%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="size">Size (px)</label>
+          <select id="size">
+            <option value="240">240</option>
+            <option value="360" selected>360</option>
+            <option value="480">480</option>
+            <option value="640">640</option>
+            <option value="1024">1024</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Foreground</label>
+          <div class="color-row">
+            <input type="color" id="fgColor" value="#171717">
+            <span class="swatch-label" id="fgHex">#171717</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <div class="color-row">
+            <input type="color" id="bgColor" value="#ffffff">
+            <span class="swatch-label" id="bgHex">#ffffff</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">Higher error correction lets the code survive smudges, creases, or a logo overlay — but it packs the pattern denser. Use H if you plan to print small or add a logo.</div>
+    </div>
+
+    <div>
+      <div class="panel stamp-frame">
+        <div class="qr-box" id="qrBox">
+          <div class="placeholder" id="placeholder">Type something to generate a code</div>
+          <canvas id="qr-canvas" style="display:none;"></canvas>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="downloadPng">Download PNG</button>
+        <button id="downloadSvg">Download SVG</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Generated locally in your browser — close this tab and the code still works</footer>
+</div>
+
+<script>
+let currentSvgString = "";
+
+function buildQR(){
+  const dataEl = document.getElementById('data');
+  const text = dataEl.value.trim();
+  const placeholder = document.getElementById('placeholder');
+  const canvas = document.getElementById('qr-canvas');
+
+  if(!text){
+    placeholder.style.display = 'flex';
+    canvas.style.display = 'none';
+    currentSvgString = "";
+    return;
+  }
+
+  const ecc = document.getElementById('ecc').value;
+  const size = parseInt(document.getElementById('size').value, 10);
+  const fg = document.getElementById('fgColor').value;
+  const bg = document.getElementById('bgColor').value;
+
+  let qr;
+  try{
+    qr = qrcode(0, ecc);
+    qr.addData(text);
+    qr.make();
+  }catch(e){
+    qr = qrcode(0, ecc);
+    qr.addData(text, 'Byte');
+    qr.make();
+  }
+
+  const moduleCount = qr.getModuleCount();
+  const tileSize = size / moduleCount;
+
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = fg;
+
+  let svgRects = "";
+  for(let row = 0; row < moduleCount; row++){
+    for(let col = 0; col < moduleCount; col++){
+      if(qr.isDark(row, col)){
+        const x = col * tileSize;
+        const y = row * tileSize;
+        ctx.fillRect(x, y, tileSize, tileSize);
+        svgRects += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${tileSize.toFixed(2)}" height="${tileSize.toFixed(2)}" fill="${fg}"/>`;
+      }
+    }
+  }
+
+  currentSvgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="${bg}"/>${svgRects}</svg>`;
+
+  placeholder.style.display = 'none';
+  canvas.style.display = 'block';
+}
+
+function download(url, filename){
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+document.getElementById('data').addEventListener('input', buildQR);
+document.getElementById('ecc').addEventListener('change', buildQR);
+document.getElementById('size').addEventListener('change', buildQR);
+document.getElementById('fgColor').addEventListener('input', () => {
+  document.getElementById('fgHex').textContent = document.getElementById('fgColor').value;
+  buildQR();
+});
+document.getElementById('bgColor').addEventListener('input', () => {
+  document.getElementById('bgHex').textContent = document.getElementById('bgColor').value;
+  buildQR();
+});
+
+document.getElementById('downloadPng').addEventListener('click', () => {
+  const canvas = document.getElementById('qr-canvas');
+  if(canvas.style.display === 'none') return;
+  download(canvas.toDataURL('image/png'), 'qr-code.png');
+});
+
+document.getElementById('downloadSvg').addEventListener('click', () => {
+  if(!currentSvgString) return;
+  const blob = new Blob([currentSvgString], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  download(url, 'qr-code.svg');
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+buildQR();
+</script>
+</body>
+</html>
