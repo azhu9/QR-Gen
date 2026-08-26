@@ -130,6 +130,32 @@
     cursor:pointer;
   }
   .swatch-label{font-family:'Geist Mono',monospace;font-size:12px;color:var(--text-dim);}
+  .logo-row{display:flex;align-items:center;gap:10px;}
+  input[type=file]{
+    flex:1;
+    font-family:'Geist',system-ui,sans-serif;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  input[type=file]::file-selector-button{
+    font-family:'Geist',system-ui,sans-serif;
+    font-size:12px;
+    font-weight:500;
+    padding:7px 12px;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--text);
+    cursor:pointer;
+    margin-right:10px;
+  }
+  input[type=file]::file-selector-button:hover{background:#f5f5f5;}
+  #clearLogo{padding:7px 12px;font-size:12px;flex-shrink:0;}
+  input[type=range]{
+    width:100%;
+    accent-color:var(--text);
+  }
+  .copied{background:#16a34a !important;border-color:#16a34a !important;color:#fff !important;}
   .stamp-frame{
     display:flex;
     justify-content:center;
@@ -245,7 +271,20 @@
         </div>
       </div>
 
-      <div class="note">Higher error correction lets the code survive smudges, creases, or a logo overlay — but it packs the pattern denser. Use H if you plan to print small or add a logo.</div>
+      <div class="field" id="logoField">
+        <label for="logoInput">Center icon (optional)</label>
+        <div class="logo-row">
+          <input type="file" id="logoInput" accept="image/*">
+          <button type="button" id="clearLogo" style="display:none;">Remove</button>
+        </div>
+      </div>
+
+      <div class="field" id="logoSizeField" style="display:none;">
+        <label for="logoSize">Icon size — <span id="logoSizeVal">22%</span></label>
+        <input type="range" id="logoSize" min="12" max="32" value="22">
+      </div>
+
+      <div class="note">Higher error correction lets the code survive smudges, creases, or a logo overlay — but it packs the pattern denser. Use H if you plan to print small or add a logo. Adding an icon automatically switches error correction to H.</div>
     </div>
 
     <div>
@@ -258,6 +297,7 @@
       <div class="actions">
         <button class="primary" id="downloadPng">Download PNG</button>
         <button id="downloadSvg">Download SVG</button>
+        <button id="copyPng">Copy to clipboard</button>
       </div>
     </div>
   </div>
@@ -267,6 +307,18 @@
 
 <script>
 let currentSvgString = "";
+let logoImage = null;
+let logoDataUrl = null;
+
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 
 function buildQR(){
   const dataEl = document.getElementById('data');
@@ -319,6 +371,22 @@ function buildQR(){
     }
   }
 
+  if(logoImage){
+    const logoPct = parseInt(document.getElementById('logoSize').value, 10) / 100;
+    const logoSize = size * logoPct;
+    const logoX = (size - logoSize) / 2;
+    const logoY = (size - logoSize) / 2;
+    const pad = logoSize * 0.14;
+    const bx = logoX - pad, by = logoY - pad, bw = logoSize + pad * 2, bh = logoSize + pad * 2;
+
+    ctx.fillStyle = bg;
+    roundRectPath(ctx, bx, by, bw, bh, 8);
+    ctx.fill();
+    ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+
+    svgRects += `<rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="8" fill="${bg}"/><image x="${logoX.toFixed(2)}" y="${logoY.toFixed(2)}" width="${logoSize.toFixed(2)}" height="${logoSize.toFixed(2)}" href="${logoDataUrl}"/>`;
+  }
+
   currentSvgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="${bg}"/>${svgRects}</svg>`;
 
   placeholder.style.display = 'none';
@@ -346,6 +414,40 @@ document.getElementById('bgColor').addEventListener('input', () => {
   buildQR();
 });
 
+document.getElementById('logoInput').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    logoDataUrl = reader.result;
+    const img = new Image();
+    img.onload = () => {
+      logoImage = img;
+      document.getElementById('clearLogo').style.display = 'inline-block';
+      document.getElementById('logoSizeField').style.display = 'block';
+      document.getElementById('ecc').value = 'H';
+      buildQR();
+    };
+    img.src = logoDataUrl;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('clearLogo').addEventListener('click', () => {
+  logoImage = null;
+  logoDataUrl = null;
+  document.getElementById('logoInput').value = '';
+  document.getElementById('clearLogo').style.display = 'none';
+  document.getElementById('logoSizeField').style.display = 'none';
+  buildQR();
+});
+
+document.getElementById('logoSize').addEventListener('input', () => {
+  document.getElementById('logoSizeVal').textContent = document.getElementById('logoSize').value + '%';
+  buildQR();
+});
+
 document.getElementById('downloadPng').addEventListener('click', () => {
   const canvas = document.getElementById('qr-canvas');
   if(canvas.style.display === 'none') return;
@@ -358,6 +460,26 @@ document.getElementById('downloadSvg').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   download(url, 'qr-code.svg');
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+document.getElementById('copyPng').addEventListener('click', async () => {
+  const canvas = document.getElementById('qr-canvas');
+  const btn = document.getElementById('copyPng');
+  if(canvas.style.display === 'none') return;
+
+  try{
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 1500);
+  }catch(err){
+    alert('Copy failed: ' + err.message);
+  }
 });
 
 buildQR();
