@@ -5,6 +5,14 @@ function hasLogo(){
   return !!logoImage;
 }
 
+function constrainEccForLogo(logoPresent){
+  const eccSelect = document.getElementById('ecc');
+  eccSelect.querySelector('option[value="L"]').disabled = logoPresent;
+  if(logoPresent && eccSelect.value === 'L'){
+    eccSelect.value = 'H';
+  }
+}
+
 function drawLogo(ctx, size, bg){
   const logoPct = parseInt(document.getElementById('logoSize').value, 10) / 100;
   const logoSize = size * logoPct;
@@ -49,7 +57,7 @@ function setupLogoControls(onChange){
         logoImage = img;
         document.getElementById('clearLogo').style.display = 'inline-block';
         document.getElementById('logoSizeField').style.display = 'block';
-        document.getElementById('ecc').value = 'H';
+        constrainEccForLogo(true);
         onChange();
       };
       img.src = logoDataUrl;
@@ -63,6 +71,7 @@ function setupLogoControls(onChange){
     document.getElementById('logoInput').value = '';
     document.getElementById('clearLogo').style.display = 'none';
     document.getElementById('logoSizeField').style.display = 'none';
+    constrainEccForLogo(false);
     onChange();
   });
 
